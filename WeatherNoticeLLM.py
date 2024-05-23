@@ -9,7 +9,7 @@ from langchain_core.output_parsers import StrOutputParser
 model = ChatGoogleGenerativeAI(model="gemini-pro")
 output_parser = StrOutputParser()
 
-chain = ChatGoogleGenerativeAI(model="gemini-pro") | output_parser
+chain = model | output_parser
 
 dick = chain.invoke("응~니얼굴~")
 print(dick)
