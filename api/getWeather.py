@@ -4,9 +4,9 @@ import requests
 
 serviceKey = "Xnp%2BTViCCwNnf67xecZvXEnev8RZ3KVpPS3uPbB44Uk14TkI%2FYNkS0vOSbypnx2c%2BOhLX2zSXHI4sdCGyck0Mw%3D%3D" # API Key 입력
 base_date = '20240525' # 발표 일자
-base_time = '0000' # 발표 시간
+base_time = '0100' # 발표 시간
 nx = '55' # 예보 지점 x좌표
-ny = '126' # 예보 지점 y좌표
+ny = '124' # 예보 지점 y좌표
 
 # 각 데이터 항목 파싱
 deg_code = {0 : 'N', 360 : 'N', 180 : 'S', 270 : 'W', 90 : 'E', 22.5 :'NNE',
