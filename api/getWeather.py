@@ -1,93 +1,58 @@
-from datetime import datetime, timedelta
-import json
 import requests
+from datetime import datetime, timedelta
 
-serviceKey = "Xnp%2BTViCCwNnf67xecZvXEnev8RZ3KVpPS3uPbB44Uk14TkI%2FYNkS0vOSbypnx2c%2BOhLX2zSXHI4sdCGyck0Mw%3D%3D" # API Key 입력
-base_date = '20240525' # 발표 일자
-base_time = '0100' # 발표 시간
-nx = '55' # 예보 지점 x좌표
-ny = '124' # 예보 지점 y좌표
+SERVICE_KEY = "Xnp%2BTViCCwNnf67xecZvXEnev8RZ3KVpPS3uPbB44Uk14TkI%2FYNkS0vOSbypnx2c%2BOhLX2zSXHI4sdCGyck0Mw%3D%3D"
+BASE_DATE = datetime.today().strftime("%Y%m%d") # 현재 날짜 뽑아옴
+BASE_TIME = '0600'
+NX = '55'
+NY = '124'
 
 # 각 데이터 항목 파싱
-deg_code = {0 : 'N', 360 : 'N', 180 : 'S', 270 : 'W', 90 : 'E', 22.5 :'NNE',
-           45 : 'NE', 67.5 : 'ENE', 112.5 : 'ESE', 135 : 'SE', 157.5 : 'SSE',
-           202.5 : 'SSW', 225 : 'SW', 247.5 : 'WSW', 292.5 : 'WNW', 315 : 'NW',
-           337.5 : 'NNW'}
-pyt_code = {0 : '강수 없음', 1 : '비', 2 : '비/눈', 3 : '눈', 5 : '빗방울', 6 : '진눈깨비', 7 : '눈날림'}
-sky_code = {1 : '맑음', 3 : '구름많음', 4 : '흐림'}
+PTY_CODE = {0: '강수 없음', 1: '비', 2: '비/눈', 3: '눈', 5: '빗방울', 6: '진눈깨비', 7: '눈날림'}
+SKY_CODE = {1: '맑음', 3: '구름많음', 4: '흐림'}
 
-# 입력 시간 계산
-input_d = datetime.strptime(base_date + base_time, "%Y%m%d%H%M" ) - timedelta(hours=1)
-input_datetime = datetime.strftime(input_d, "%Y%m%d%H%M")
+# API 요청 입력 시간 계산
+input_d = datetime.strptime(BASE_DATE + BASE_TIME, "%Y%m%d%H%M") - timedelta(hours=1)
+input_datetime = input_d.strftime("%Y%m%d%H%M")
 input_time = input_datetime[-4:]
 
-# url
-url = f"http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey={serviceKey}&numOfRows=60&pageNo=1&dataType=json&base_date={base_date}&base_time={input_time}&nx={nx}&ny={ny}"
+# URL
+url = f"http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey={SERVICE_KEY}&pageNo=1&numOfRows=1000&dataType=JSON&base_date={BASE_DATE}&base_time={input_time}&nx={NX}&ny={NY}"
 
-# url로 API return 값 요청
+# 포맷팅
 response = requests.get(url, verify=False)
-res = json.loads(response.text)
+data = response.json()
 
-# 날씨 정보 받아오기
-informations = dict()
-for items in res['response']['body']['items']['item'] :
-    cate = items['category']
-    fcstTime = items['fcstTime']
-    fcstValue = items['fcstValue']
-    temp = dict()
-    temp[cate] = fcstValue
-    
-    if fcstTime not in informations.keys() :
-        informations[fcstTime] = dict()
-    informations[fcstTime][cate] = fcstValue
-
-# 풍향
-def deg_to_dir(deg) :
-    close_dir = ''
-    min_abs = 360
-    if deg not in deg_code.keys() :
-        for key in deg_code.keys() :
-            if abs(key - deg) < min_abs :
-                min_abs = abs(key - deg)
-                close_dir = deg_code[key]
-    else : 
-        close_dir = deg_code[deg]
-    return close_dir
-deg_to_dir(0)
-
-# 문자열 포맷팅
-for key, val in zip(informations.keys(), informations.values()) :
-    template = f"""{base_date[:4]}년 {base_date[4:6]}월 {base_date[-2:]}일 {key[:2]}시 {key[2:]}분 {(int(nx), int(ny))} 지역의 날씨는 """ 
-    
-    # 맑음(1), 구름많음(3), 흐림(4)
-    if val['SKY'] :
-        sky_temp = sky_code[int(val['SKY'])]
-        template += sky_temp + " "
-    
-    # (초단기) 없음(0), 비(1), 비/눈(2), 눈(3), 빗방울(5), 빗방울눈날림(6), 눈날림(7)
-    if val['PTY'] :
-        pty_temp = pyt_code[int(val['PTY'])]
-        template += pty_temp
-        # 강수 있는 경우
-        if val['RN1'] != '강수없음' :
-            # RN1 1시간 강수량 
-            rn1_temp = val['RN1']
-            template += f"시간당 {rn1_temp}mm "
-    
-    # 기온
-    if val['T1H'] :
-        t1h_temp = float(val['T1H'])
-        template += f" 기온 {t1h_temp}℃ "
+def get_weather_string(data):
+    weather_data = {}
+    for item in data['response']['body']['items']['item']:
+        category = item['category']
+        fcst_time = item['fcstTime']
+        fcst_value = item['fcstValue']
         
-    # 습도
-    if val['REH'] :
-        reh_temp = float(val['REH'])
-        template += f"습도 {reh_temp}% "
-    
-    # 풍향/풍속
-    if val['VEC'] and val['WSD']:
-        vec_temp = deg_to_dir(float(val['VEC']))
-        wsd_temp = val['WSD']
+        if fcst_time not in weather_data:
+            weather_data[fcst_time] = {}
         
-    template += f"풍속 {vec_temp} 방향 {wsd_temp}m/s"
-    print(template)
+        weather_data[fcst_time][category] = fcst_value
+
+    sorted_times = sorted(weather_data.keys())
+    formatted_data = []
+    for fcst_time in sorted_times:
+        values = weather_data[fcst_time]
+        current_time = f"{fcst_time[:2]}:{fcst_time[2:]}"
+        tem = values.get('TMP', 'N/A')
+        vec = values.get('WSD', 'N/A')
+        sky = SKY_CODE.get(int(values.get('SKY', 0)), 'N/A')
+        precipitation = PTY_CODE.get(int(values.get('PTY', 0)), 'N/A')
+        REH = values.get('REH', 'N/A')
+
+        formatted_data.append(
+            f"{current_time} - {sky}, {precipitation}, 기온: {tem}°C, "
+            f", 습도: {REH}%, 바람: {vec}m/s"
+        )
+
+    return "\n".join(formatted_data)
+
+weather_string = get_weather_string(data)
+template = f'''{(int(NX), int(NY))} 지역의 날씨는\n{weather_string}'''
+print(template)
