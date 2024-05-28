@@ -4,7 +4,7 @@ from datetime import datetime
 # API Key와 기본 날짜 및 시간 설정
 SERVICE_KEY = "Xnp%2BTViCCwNnf67xecZvXEnev8RZ3KVpPS3uPbB44Uk14TkI%2FYNkS0vOSbypnx2c%2BOhLX2zSXHI4sdCGyck0Mw%3D%3D"
 BASE_DATE = datetime.today().strftime("%Y%m%d")
-BASE_TIME = '0500'  # 매일 0600
+BASE_TIME = '0500'  # 매일 500
 NX = '55'
 NY = '126'
 
